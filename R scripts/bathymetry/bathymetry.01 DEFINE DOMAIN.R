@@ -24,10 +24,10 @@ GFW <- crop(GFW, crop)
 #### Polygons based on depth ####
 
 Depths <- GEBCO
-Depths[GEBCO >= 0 | GEBCO < -3000] <- NA
+Depths[GEBCO >= 0 | GEBCO < -ODepth] <- NA
 
-Depths[Depths < -50] <- -3000
-Depths[Depths > -50] <- -50
+Depths[Depths < -SDepth] <- -ODepth
+Depths[Depths > -SDepth] <- -SDepth
 
 Depths <- st_as_stars(Depths) %>%
     st_as_sf(merge = TRUE) %>%

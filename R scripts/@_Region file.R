@@ -17,7 +17,9 @@ ggsave_map <- function(filename, plot) {
 pre <- list(scale = 1, width = 12, height = 10, units = "cm", dpi = 500) # The same settings if you need to pass them to a function in MiMeMo.tools
 
 SDepth <- 50 # Shallow deep boundary
-DDepth <- 3000 # Maximum depth
+DDepth <- 800 # Deep zone maximum depth
+ODepth <- 3000 # Depth of the seafloor at the outermost edge of the overhang
+Distance <- 20 # Minimum distance from shore buffer for the inshore zone
 
 #### bathymetry.5 MODEL DOMAIN ####
 

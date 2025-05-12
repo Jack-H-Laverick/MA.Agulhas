@@ -21,6 +21,10 @@ library(ggpattern)
 domains <- readRDS("./Objects/Domains.rds") %>% # Load SF polygons of the MiMeMo model domains
     st_transform(crs = 9822) # Moved to CRS EPSG:9822 as it is equal-area to allow for accurate area calculations
 
+overhang <- readRDS("./Objects/Overhang.rds") %>%
+    st_transform(crs = 9822) %>%
+    mutate(Habitat = "Overhang")
+
 sanbi_ecosystem_map <- st_read("./Data/spatial/SANBI-MarineEcosystemMap2018/MarineEcosystemMap2018_beta.shp")
 sanbi_ecosystem_map <- st_transform(sanbi_ecosystem_map, crs = 9822)
 
@@ -81,10 +85,51 @@ sediment_minus_rock <- st_erase(sub_sediment, sub_rocks)
 habitats <- rbind(sediment_minus_rock, sub_rocks) %>%
     rename(Habitat = "habitat_class") %>%
     st_make_valid()
-alpha_values <- c("Inshore" = 0.2, "Offshore" = 1.0)
+habitats <- st_erase(habitats, overhang)
+habitats <- rbind(habitats, overhang[, c("Habitat", "Shore", "geometry")])
+
+additional_sand <- matrix(
+    c(
+        30.75, -30.6,
+        31, -30.6,
+        31.25, -30.4,
+        31.75, -30.2,
+        31.5, -29.9,
+        31.25, -29.9,
+        31.125, -30.1,
+        31, -30.24,
+        30.75, -30.6
+    ),
+    ncol = 2, byrow = TRUE
+) %>%
+    shape(label = "additional sand") %>%
+    st_transform(9822) %>%
+    mutate(Habitat = "sand")
+
+additional_sand <- st_intersection(domains, additional_sand)
+additional_sand <- st_erase(additional_sand, habitats)
+habitats <- rbind(
+    habitats,
+    additional_sand[additional_sand$Shore == "Offshore", c("Habitat", "Shore", "geometry")]
+)
+habitats[habitats$Shore == "Offshore" & habitats$Habitat == "sand", ]$geometry <- rep(
+    st_make_valid(
+        st_union(
+            habitats[habitats$Shore == "Offshore" & habitats$Habitat == "sand", "geometry"]
+        )
+    ),
+    sum(habitats$Shore == "Offshore" & habitats$Habitat == "sand")
+)
+habitats <- habitats[!duplicated(habitats), ]
+
+G_Y2 <- c(
+    `Inshore rock` = "#40333C", `Inshore mud` = "#284481", `Inshore sand` = "#9097CC", `Inshore gravel` = "#4A8FA1",
+    `Offshore rock` = "#d7c288", `Offshore mud` = "#ffb700", `Offshore sand` = "#FFD25F", `Offshore gravel` = "#ffedbd", `Offshore Overhang` = "#b01313"
+)
 ggplot() +
-    geom_sf(data = habitats, aes(fill = Habitat, alpha = Shore)) +
-    scale_alpha_manual(values = alpha_values)
+    geom_sf(data = habitats, aes(fill = paste(Shore, Habitat)), alpha = 0.5) +
+    scale_fill_manual(values = (G_Y2)) +
+    coord_sf(xlim = c(30.2, 31.8), ylim = c(-31, -29.8))
 
 #### Calculate proportion of model zones in each habitat - before converting reprojecting ####
 proportions <- habitats %>%
