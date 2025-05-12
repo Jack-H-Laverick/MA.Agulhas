@@ -118,17 +118,3 @@ ggplot() +
     NULL
 
 ggsave_map("./Figures/bathymetry/Distance.png", last_plot())
-
-gfw_monthly <- arrow::read_parquet("../../Spatial Data/fishing_effort_data/Global_fishing_watch/fleet-monthly.parq")
-gfw_monthly_total <- gfw_monthly %>%
-    group_by(cell_ll_lon, cell_ll_lat) %>%
-    summarise(hours = sum(hours))
-gfw_monthly_total <- st_as_sf(gfw_monthly_total, coords = c("cell_ll_lon", "cell_ll_lat"), crs = 4326)
-gfw_monthly_total <- st_intersection(gfw_monthly_total, Region_mask)
-gfw_stars <- st_rasterize(gfw_monthly_total)
-gfw_stars[gfw_stars > 150000] <- NA
-
-ggplot() +
-    geom_stars(data = log(gfw_stars)) +
-    scale_fill_viridis_c() +
-    geom_sf(data = Domains, aes(color = Shore), alpha = 0.3)
