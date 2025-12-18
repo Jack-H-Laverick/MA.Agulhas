@@ -120,16 +120,60 @@ habitats[habitats$Shore == "Offshore" & habitats$Habitat == "sand", ]$geometry <
     ),
     sum(habitats$Shore == "Offshore" & habitats$Habitat == "sand")
 )
+
+additional_gravel <- matrix(
+    c(
+        27.75, -33.5,
+        28, -33.5,
+        28.5, -33,
+        29, -32.75,
+        29.5, -32.25,
+        30.5, -31.25,
+        30.5, -30.9,
+        29.5, -31.75,
+        28.75, -32.6,
+        28, -33.25,
+        27.75, -33.5
+    ),
+    ncol = 2, byrow = TRUE
+) %>%
+    shape(label = "additional gravel") %>%
+    st_transform(9822) %>%
+    mutate(Habitat = "gravel")
+additional_gravel <- st_intersection(domains, additional_gravel)
+additional_gravel <- st_erase(additional_gravel, habitats)
+
+habitats <- rbind(
+    habitats,
+    additional_gravel[additional_gravel$Shore == "Offshore", c("Habitat", "Shore", "geometry")]
+)
+habitats[habitats$Shore == "Offshore" & habitats$Habitat == "gravel", ]$geometry <- rep(
+    st_make_valid(
+        st_union(
+            habitats[habitats$Shore == "Offshore" & habitats$Habitat == "gravel", "geometry"]
+        )
+    ),
+    sum(habitats$Shore == "Offshore" & habitats$Habitat == "gravel")
+)
 habitats <- habitats[!duplicated(habitats), ]
 
 G_Y2 <- c(
-    `Inshore rock` = "#40333C", `Inshore mud` = "#284481", `Inshore sand` = "#9097CC", `Inshore gravel` = "#4A8FA1",
-    `Offshore rock` = "#d7c288", `Offshore mud` = "#ffb700", `Offshore sand` = "#FFD25F", `Offshore gravel` = "#ffedbd", `Offshore Overhang` = "#b01313"
+    `Inshore rock` = "#40333C",
+    `Inshore mud` = "#284481",
+    `Inshore sand` = "#9097CC",
+    `Inshore gravel` = "#4A8FA1",
+    `Offshore rock` = "#d7c288",
+    `Offshore mud` = "#ffb700",
+    `Offshore sand` = "#FFD25F",
+    `Offshore gravel` = "#ffedbd",
+    `Offshore Overhang` = "#b01313"
 )
 ggplot() +
     geom_sf(data = habitats, aes(fill = paste(Shore, Habitat)), alpha = 0.5) +
     scale_fill_manual(values = (G_Y2)) +
-    coord_sf(xlim = c(30.2, 31.8), ylim = c(-31, -29.8))
+    # coord_sf(crs = 4326) +
+    geom_sf(data = additional_gravel, alpha = 0.5) +
+    coord_sf(xlim = c(27.5, 32), ylim = c(-34, -30), crs = 4326)
 
 #### Calculate proportion of model zones in each habitat - before converting reprojecting ####
 proportions <- habitats %>%
